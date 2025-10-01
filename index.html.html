@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hospital Management System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+  <!-- Login Section -->
+  <div id="login-section" class="max-w-md mx-auto mt-20 bg-white p-6 rounded-lg shadow">
+    <h2 class="text-2xl font-bold text-center mb-5">Receptionist Login</h2>
+    <input id="username" type="text" placeholder="Username" class="w-full mb-3 p-2 border rounded">
+    <input id="password" type="password" placeholder="Password" class="w-full mb-3 p-2 border rounded">
+    <button onclick="login()" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Login</button>
+    <p id="login-error" class="text-red-500 mt-2"></p>
+  </div>
+
+  <!-- Main Dashboard (hidden initially) -->
+  <div id="dashboard" class="hidden max-w-7xl mx-auto mt-10 flex gap-5">
+
+    <!-- Left Column: Operations -->
+    <div class="flex-1">
+      <div class="flex justify-between mb-5">
+        <h2 class="text-2xl font-bold">Receptionist Dashboard</h2>
+        <button onclick="logout()" class="bg-red-500 text-white p-2 rounded hover:bg-red-600">Logout</button>
+      </div>
+
+      <div class="flex gap-2 mb-5 flex-wrap">
+        <button onclick="showSection('admit')" class="bg-blue-600 text-white p-2 rounded">Admit Patient</button>
+        <button onclick="showSection('find')" class="bg-green-600 text-white p-2 rounded">Find Patient</button>
+        <button onclick="showSection('discharge')" class="bg-yellow-600 text-white p-2 rounded">Discharge Patient</button>
+        <button onclick="showSection('emergency')" class="bg-red-600 text-white p-2 rounded">Emergency Admission</button>
+      </div>
+
+      <!-- Admit Patient -->
+      <div id="admit" class="bg-white p-5 rounded shadow mb-5 hidden">
+        <h3 class="text-xl font-semibold mb-3">Admit Patient</h3>
+        <input id="admit-name" type="text" placeholder="Patient Name" class="w-full mb-2 p-2 border rounded">
+        <input id="admit-age" type="number" placeholder="Age" class="w-full mb-2 p-2 border rounded">
+        <select id="admit-disease" class="w-full mb-2 p-2 border rounded">
+          <option value="">Select Disease</option>
+          <option value="General">General</option>
+          <option value="Heart">Heart</option>
+          <option value="Brain">Brain</option>
+          <option value="Bones">Bones</option>
+          <option value="Skin">Skin</option>
+          <option value="Child">Child</option>
+          <option value="ENT">ENT</option>
+          <option value="Eye">Eye</option>
+          <option value="Stomach">Stomach</option>
+          <option value="Mental">Mental</option>
+          <option value="Urinary">Urinary</option>
+          <option value="Emergency">Emergency</option>
+        </select>
+        <input id="admit-date" type="date" class="w-full mb-2 p-2 border rounded">
+        <button onclick="admitPatient()" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Admit</button>
+        <p id="admit-msg" class="mt-2 text-green-600 font-semibold"></p>
+      </div>
+
+      <!-- Find Patient -->
+      <div id="find" class="bg-white p-5 rounded shadow mb-5 hidden">
+        <h3 class="text-xl font-semibold mb-3">Find Patient</h3>
+        <input id="find-token" type="text" placeholder="Patient Token" class="w-full mb-2 p-2 border rounded">
+        <input id="find-name" type="text" placeholder="Patient Name" class="w-full mb-2 p-2 border rounded">
+        <button onclick="findPatient()" class="bg-green-600 text-white p-2 rounded hover:bg-green-700">Search</button>
+        <div id="find-result" class="mt-3"></div>
+      </div>
+
+      <!-- Discharge Patient -->
+      <div id="discharge" class="bg-white p-5 rounded shadow mb-5 hidden">
+        <h3 class="text-xl font-semibold mb-3">Discharge Patient</h3>
+        <input id="discharge-token" type="text" placeholder="Patient Token" class="w-full mb-2 p-2 border rounded">
+        <input id="discharge-date" type="date" class="w-full mb-2 p-2 border rounded">
+        <button onclick="dischargePatient()" class="bg-yellow-600 text-white p-2 rounded hover:bg-yellow-700">Discharge</button>
+        <div id="bill" class="mt-3"></div>
+      </div>
+
+      <!-- Emergency Admission -->
+      <div id="emergency" class="bg-white p-5 rounded shadow mb-5 hidden">
+        <h3 class="text-xl font-semibold mb-3">Emergency Admission</h3>
+        <input id="emergency-name" type="text" placeholder="Patient Name" class="w-full mb-2 p-2 border rounded">
+        <input id="emergency-age" type="number" placeholder="Age" class="w-full mb-2 p-2 border rounded">
+        <input id="emergency-date" type="date" class="w-full mb-2 p-2 border rounded">
+        <button onclick="emergencyPatient()" class="bg-red-600 text-white p-2 rounded hover:bg-red-700">Admit Emergency</button>
+        <p id="emergency-msg" class="mt-2 text-green-600 font-semibold"></p>
+      </div>
+    </div>
+
+    <!-- Right Column: Doctors Dashboard -->
+    <div class="w-80">
+      <div class="bg-gray-50 p-5 rounded shadow sticky top-5">
+        <h2 class="text-xl font-semibold mb-3">Doctors Dashboard</h2>
+        <table class="w-full border-collapse border">
+          <thead class="bg-gray-200">
+            <tr>
+              <th class="border p-2">ID</th>
+              <th class="border p-2">Name</th>
+              <th class="border p-2">Specialization</th>
+              <th class="border p-2">Patients</th>
+            </tr>
+          </thead>
+          <tbody id="doctors-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ===== Initialize Doctors =====
+    function preloadDoctors(){
+      if(!localStorage.getItem("doctors")){
+        const doctors = [
+          {id:12,name:"Dr. Malllappa",spec:"GeneralSurgeon"},
+          {id:11,name:"Dr. Vinnod",spec:"Emergency"},
+          {id:1,name:"Dr. Guru",spec:"Cardiology"},
+          {id:2,name:"Dr. Johnson",spec:"Neurology"},
+          {id:3,name:"Dr. Williams",spec:"Orthopedics"},
+          {id:4,name:"Dr. Brown",spec:"Pediatrics"},
+          {id:5,name:"Dr. Suhas",spec:"Dermatology"},
+          {id:6,name:"Dr. Garcia",spec:"Gastroenterology"},
+          {id:7,name:"Dr. Miller",spec:"ENT"},
+          {id:8,name:"Dr. Davis",spec:"Ophthalmology"},
+          {id:9,name:"Dr. Rodriguez",spec:"Psychiatry"},
+          {id:10,name:"Dr. Martinez",spec:"Urology"}
+        ];
+        localStorage.setItem("doctors", JSON.stringify(doctors));
+      }
+      updateDoctorsDashboard();
+    }
+
+    // ===== Update Doctors Dashboard =====
+    function updateDoctorsDashboard(){
+      const doctors=JSON.parse(localStorage.getItem("doctors"));
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      const table=document.getElementById("doctors-table");
+      table.innerHTML="";
+      doctors.forEach(d=>{
+        const current=patients.filter(p=>p.doctor===d.name && !p.dischargeDate).length;
+        table.innerHTML+=`<tr>
+          <td class="border p-2">${d.id}</td>
+          <td class="border p-2">${d.name}</td>
+          <td class="border p-2">${d.spec}</td>
+          <td class="border p-2">${current}</td>
+        </tr>`;
+      });
+    }
+
+    // ===== Login =====
+    function login(){
+      const username=document.getElementById("username").value;
+      const password=document.getElementById("password").value;
+      const validUsers={"Ravi":"pass123","Guru":"guru@2107","john":"john@111"};
+      if(validUsers[username]===password){
+        document.getElementById("login-section").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        if(!localStorage.getItem("patients")) localStorage.setItem("patients","[]");
+        if(!localStorage.getItem("tokenCounter")) localStorage.setItem("tokenCounter","100");
+        updateDoctorsDashboard();
+      } else document.getElementById("login-error").innerText="Invalid Username or Password!";
+    }
+    function logout(){ location.reload(); }
+
+    function showSection(id){
+      ["admit","find","discharge","emergency"].forEach(s=>document.getElementById(s).classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function assignDoctor(disease){
+      const doctors=JSON.parse(localStorage.getItem("doctors"));
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      const mapping={
+        "General":"GeneralSurgeon","Emergency":"Emergency","Heart":"Cardiology","Brain":"Neurology",
+        "Bones":"Orthopedics","Skin":"Dermatology","Child":"Pediatrics","ENT":"ENT",
+        "Eye":"Ophthalmology","Stomach":"Gastroenterology","Mental":"Psychiatry","Urinary":"Urology"
+      };
+      for(const d of doctors){
+        if(mapping[disease]===d.spec){
+          const count=patients.filter(p=>p.doctor===d.name && !p.dischargeDate).length;
+          if(count<10) return d.name;
+        }
+      }
+      return null;
+    }
+
+    function admitPatient(){
+      const name=document.getElementById("admit-name").value;
+      const age=document.getElementById("admit-age").value;
+      const disease=document.getElementById("admit-disease").value;
+      const admitDate=document.getElementById("admit-date").value;
+      const doctor=assignDoctor(disease);
+      if(!doctor){ alert("No doctor available!"); return; }
+      let tokenCounter=parseInt(localStorage.getItem("tokenCounter"));
+      const token="T"+tokenCounter;
+      localStorage.setItem("tokenCounter",tokenCounter+1);
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      patients.push({token,name,age,disease,doctor,admitDate,dischargeDate:""});
+      localStorage.setItem("patients",JSON.stringify(patients));
+      alert(`Patient Admitted! Token: ${token}, Doctor: ${doctor}`);
+      updateDoctorsDashboard();
+    }
+
+    function findPatient(){
+      const token=document.getElementById("find-token").value;
+      const name=document.getElementById("find-name").value;
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      const patient=patients.find(p=>p.token===token && p.name===name);
+      const resultDiv=document.getElementById("find-result");
+      if(patient){
+        resultDiv.innerHTML=`<p><strong>Token:</strong> ${patient.token}</p>
+          <p><strong>Name:</strong> ${patient.name}</p>
+          <p><strong>Age:</strong> ${patient.age}</p>
+          <p><strong>Disease:</strong> ${patient.disease}</p>
+          <p><strong>Doctor:</strong> ${patient.doctor}</p>
+          <p><strong>Admit Date:</strong> ${patient.admitDate}</p>
+          <p><strong>Discharge Date:</strong> ${patient.dischargeDate||"N/A"}</p>`;
+      } else resultDiv.innerText="Patient not found!";
+    }
+
+    function dischargePatient(){
+      const token=document.getElementById("discharge-token").value;
+      const dischargeDate=document.getElementById("discharge-date").value;
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      const patient=patients.find(p=>p.token===token);
+      if(!patient){ alert("Patient not found!"); return; }
+      patient.dischargeDate=dischargeDate;
+      localStorage.setItem("patients",JSON.stringify(patients));
+      const days=Math.ceil((new Date(dischargeDate)-new Date(patient.admitDate))/(1000*3600*24));
+      const room=days*1000, doctor=500, medicine=300, total=room+doctor+medicine;
+      document.getElementById("bill").innerHTML=`<p><strong>Patient:</strong> ${patient.name}</p>
+        <p><strong>Days Stayed:</strong> ${days}</p>
+        <p><strong>Doctor Charge:</strong> $${doctor}</p>
+        <p><strong>Medicine Charge:</strong> $${medicine}</p>
+        <p><strong>Room Charges:</strong> $${room}</p>
+        <p><strong>Total:</strong> $${total}</p>`;
+      updateDoctorsDashboard();
+    }
+
+    function emergencyPatient(){
+      const name=document.getElementById("emergency-name").value;
+      const age=document.getElementById("emergency-age").value;
+      const admitDate=document.getElementById("emergency-date").value;
+      const doctor=assignDoctor("Emergency");
+      if(!doctor){ alert("No emergency doctor!"); return; }
+      let tokenCounter=parseInt(localStorage.getItem("tokenCounter"));
+      const token="T"+tokenCounter;
+      localStorage.setItem("tokenCounter",tokenCounter+1);
+      const patients=JSON.parse(localStorage.getItem("patients")||"[]");
+      patients.push({token,name,age,disease:"Emergency",doctor,admitDate,dischargeDate:""});
+      localStorage.setItem("patients",JSON.stringify(patients));
+      alert(`Emergency Patient Admitted! Token: ${token}, Doctor: ${doctor}`);
+      updateDoctorsDashboard();
+    }
+
+    preloadDoctors();
+  </script>
+
+</body>
+</html>
+
+
